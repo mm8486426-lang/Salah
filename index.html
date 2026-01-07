@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الأبطال - عالم 3D مفتوح</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            direction: rtl;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+        
+        /* الشاشات */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+        }
+        
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* شاشة البداية */
+        #startScreen {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 2rem;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 3rem;
+            color: #aaa;
+        }
+        
+        .menu-button {
+            width: 300px;
+            padding: 20px;
+            margin: 10px;
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, #2d3436, #636e72);
+            border: 2px solid #00b894;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .menu-button:hover {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            transform: scale(1.05);
+        }
+        
+        /* شاشة اللعبة */
+        #gameScreen .game-ui {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        /* الـ HUD */
+        .hud {
+            position: absolute;
+            padding: 20px;
+            pointer-events: none;
+        }
+        
+        .top-left {
+            top: 20px;
+            left: 20px;
+            text-align: left;
+        }
+        
+        .top-right {
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+        
+        .bottom-left {
+            bottom: 20px;
+            left: 20px;
+            text-align: left;
+        }
+        
+        .bottom-right {
+            bottom: 20px;
+            right: 20px;
+            text-align: right;
+        }
+        
+        .health-bar {
+            width: 300px;
+            height: 30px;
+            background: #333;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #ff9f43);
+            width: 100%;
+            transition: width 0.3s;
+        }
+        
+        .level-display {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            color: #00cec9;
+        }
+        
+        .experience-bar {
+            width: 300px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        
+        .experience-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00b894, #00cec9);
+            width: 0%;
+        }
+        
+        /* أزرار التحكم للجوال */
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: auto;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .control-button {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            color: white;
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.2s;
+        }
+        
+        .control-button:active {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(0.95);
+        }
+        
+        .joystick-area {
+            width: 200px;
+            height: 200px;
+            position: relative;
+        }
+        
+        .joystick-base {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            backdrop-filter: blur(10px);
+        }
+        
+        .joystick-handle {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            position: absolute;
+            top: 30px;
+            left: 30px;
+        }
+        
+        /* شاشة الدليل */
+        .guide-content {
+            max-width: 800px;
+            padding: 40px;
+            background: rgba(30, 30, 46, 0.9);
+            border-radius: 20px;
+            border: 2px solid #00b894;
+        }
+        
+        .guide-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #00b894;
+            text-align: center;
+        }
+        
+        .guide-text {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            color: #ddd;
+        }
+        
+        /* أيقونات الأبطال */
+        .hero-selection {
+            display: flex;
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .hero-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+        
+        .hero-icon:hover, .hero-icon.active {
+            transform: scale(1.1);
+            border-color: #00b894;
+        }
+        
+        .hero-icon.melee { background: linear-gradient(45deg, #e74c3c, #c0392b); }
+        .hero-icon.gunner { background: linear-gradient(45deg, #3498db, #2980b9); }
+        .hero-icon.grappler { background: linear-gradient(45deg, #9b59b6, #8e44ad); }
+        .hero-icon.mage { background: linear-gradient(45deg, #2ecc71, #27ae60); }
+        
+        /* تأثيرات الكلمات */
+        .damage-text {
+            position: absolute;
+            color: #ff6b6b;
+            font-size: 1.5rem;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+        }
+        
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+        
+        /* شاشة الموت */
+        .death-message {
+            font-size: 3rem;
+            color: #ff6b6b;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        /* التكيف مع الجوال */
+        @media (max-width: 768px) {
+            .logo { font-size: 2.5rem; }
+            .menu-button { width: 250px; padding: 15px; }
+            .control-button { width: 70px; height: 70px; }
+            .joystick-area { width: 150px; height: 150px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <!-- Canvas لـ Three.js -->
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- شاشة البداية -->
+        <div id="startScreen" class="screen active">
+            <h1 class="logo">أبطال العالم المفتوح</h1>
+            <p class="subtitle">اختر بطلًا واجه التحديات!</p>
+            
+            <div class="hero-selection">
+                <div class="hero-icon melee active" data-hero="melee">⚔️</div>
+                <div class="hero-icon gunner" data-hero="gunner">🔫</div>
+                <div class="hero-icon grappler" data-hero="grappler">🪝</div>
+                <div class="hero-icon mage" data-hero="mage">🔮</div>
+            </div>
+            
+            <button class="menu-button" id="startButton">ابدأ اللعبة</button>
+            <button class="menu-button" id="guideButton">كيفية اللعب</button>
+            <button class="menu-button" id="exitButton">خروج</button>
+        </div>
+        
+        <!-- شاشة اللعبة -->
+        <div id="gameScreen" class="screen">
+            <!-- واجهة المستخدم -->
+            <div class="game-ui">
+                <!-- معلومات اللاعب -->
+                <div class="hud top-left">
+                    <div class="health-bar">
+                        <div class="health-fill" id="healthFill"></div>
+                    </div>
+                    <div class="level-display" id="levelDisplay">المستوى: 1</div>
+                    <div class="experience-bar">
+                        <div class="experience-fill" id="experienceFill"></div>
+                    </div>
+                </div>
+                
+                <!-- معلومات الأعداء والموجة -->
+                <div class="hud top-right">
+                    <div id="enemyCount">الأعداء: 0/10</div>
+                    <div id="waveInfo">الموجة: 1</div>
+                    <div id="score">النقاط: 0</div>
+                </div>
+                
+                <!-- أزرار التحكم -->
+                <div class="controls">
+                    <!-- عصا التحكم -->
+                    <div class="joystick-area" id="joystickArea">
+                        <div class="joystick-base" id="joystickBase">
+                            <div class="joystick-handle" id="joystickHandle"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- أزرار الإجراءات -->
+                    <div class="control-group">
+                        <div class="control-button" id="attackButton">
+                            ⚔️<br><span>هجوم</span>
+                        </div>
+                        <div class="control-button" id="specialButton">
+                            ✨<br><span>خاص</span>
+                        </div>
+                        <div class="control-button" id="switchButton">
+                            🔄<br><span>تبديل</span>
+                        </div>
+                        <div class="control-button" id="pauseButton">
+                            ⏸️<br><span>إيقاف</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- شاشة الدليل -->
+        <div id="guideScreen" class="screen">
+            <div class="guide-content">
+                <h2 class="guide-title">🎮 كيفية اللعب</h2>
+                <div class="guide-text" id="guideText">
+                    <p>🏹 <strong>التحكم:</strong> استخدم عصا التحكم للحركة والأزرار للهجمات</p>
+                    <p>⚔️ <strong>الأبطال:</strong> يمكنك التبديل بين 4 أبطال بخصائص مختلفة</p>
+                    <p>👹 <strong>الأعداء:</strong> يقاتلون بشكل أذكى كلما تقدمت في المستويات</p>
+                    <p>⭐ <strong>التجربة:</strong> اجمع نقاط الخبرة لترتقي بمستوى بطلك</p>
+                    <p>💀 <strong>الموت:</strong> انتبه لشريط الصحة وإلا ستفقد التقدم</p>
+                </div>
+                <button class="menu-button" id="okButton">حسنًا</button>
+            </div>
+        </div>
+        
+        <!-- شاشة الإيقاف المؤقت -->
+        <div id="pauseScreen" class="screen">
+            <div class="guide-content">
+                <h2 class="guide-title">⏸️ اللعبة متوقفة</h2>
+                <button class="menu-button" id="resumeButton">استئناف</button>
+                <button class="menu-button" id="restartButton">إعادة بدء</button>
+                <button class="menu-button" id="menuButton">القائمة الرئيسية</button>
+            </div>
+        </div>
+        
+        <!-- شاشة الموت -->
+        <div id="deathScreen" class="screen">
+            <div class="guide-content">
+                <div class="death-message">💀 لقد ماتت!</div>
+                <div class="guide-text">
+                    <p>المستوى الذي وصلت إليه: <span id="finalLevel">1</span></p>
+                    <p>النقاط التي جمعتها: <span id="finalScore">0</span></p>
+                    <p>الأعداء الذين هزمتهم: <span id="finalKills">0</span></p>
+                </div>
+                <button class="menu-button" id="restartAfterDeath">إعادة المحاولة</button>
+                <button class="menu-button" id="menuAfterDeath">القائمة الرئيسية</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- مكتبات JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/stats.min.js"></script>
+    
+    <!-- الكود الرئيسي للعبة -->
+    <script>
+        // سيتم وضع جميع الأكواد هنا
+        // (سيتم تقسيم الكود إلى ملفات منطقية في المشروع الحقيقي)
+    </script>
+</body>
+</html>
